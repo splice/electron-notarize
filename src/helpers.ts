@@ -43,7 +43,7 @@ export function isSecret(s: string) {
 export interface NotarizationInfo {
   uuid: string;
   date: Date;
-  status: 'invalid' | 'in progress' | 'success';
+  status: 'waiting' | 'invalid' | 'in progress' | 'success';
   logFileUrl: string | null;
   // Only set when status != 'in progress'
   statusCode?: 0 | 2;
@@ -51,6 +51,7 @@ export interface NotarizationInfo {
 }
 
 export function parseNotarizationInfo(info: string): NotarizationInfo {
+  console.log('Waiting for status: ', info);
   const out: NotarizationInfo = {} as any;
   const matchToProperty = <K extends keyof NotarizationInfo, T extends NotarizationInfo[K]>(
     key: K,
