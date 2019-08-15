@@ -1,7 +1,7 @@
 import * as debug from 'debug';
 import * as path from 'path';
 
-import { spawn } from './spawn';
+import { spawn, SpawnResult } from './spawn';
 import { withTempDir, makeSecret, parseNotarizationInfo } from './helpers';
 
 const d = debug('electron-notarize');
@@ -81,16 +81,26 @@ export async function startNotarize(opts: NotarizeStartOptions): Promise<Notariz
 }
 
 export async function waitForNotarize(opts: NotarizeWaitOptions): Promise<void> {
-  d('checking notarization status:', opts.uuid);
-  const result = await spawn('xcrun', [
-    'altool',
-    '--notarization-info',
-    opts.uuid,
-    '-u',
-    makeSecret(opts.appleId),
-    '-p',
-    makeSecret(opts.appleIdPassword),
-  ]);
+  let result: SpawnResult = { code: -1, output: '' };
+  for (var i = 0; i < 10; i++) {
+    d('checking notarization status: %s (attempt: %s)', opts.uuid, i);
+    const result = await spawn('xcrun', [
+      'altool',
+      '--notarization-info',
+      opts.uuid,
+      '-u',
+      makeSecret(opts.appleId),
+      '-p',
+      makeSecret(opts.appleIdPassword),
+    ]);
+    if (result.code === 0) {
+      break;
+    } else {
+      d('notarization status check failed: %s (attempt: %s)', opts.uuid, i);
+    }
+    await delay(30000);
+  }
+
   if (result.code !== 0) {
     throw new Error(
       `Failed to check status of notarization request: ${opts.uuid}\n\n${result.output}`,
